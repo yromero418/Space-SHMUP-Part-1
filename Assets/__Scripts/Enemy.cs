@@ -8,8 +8,10 @@ public class Enemy : MonoBehaviour {
     public float fireRate = 0.3f; // Seconds/shot (Unused)
     public float health = 10; // Damage needed to destroy this enemy
     public int score = 100; // Points earned for destroying this
+    public float powerUpDropChance = 1f; // Chance to drop a PowerUp
 
-    private BoundsCheck bndCheck;
+    protected bool calledShipDestroyed = false;
+    protected BoundsCheck bndCheck; // Change bndCheck from private to protected
 
     void Awake() {
         bndCheck = GetComponent<BoundsCheck>();
@@ -46,14 +48,41 @@ public class Enemy : MonoBehaviour {
         pos = tempPos;
     }
 
+//    void OnCollisionEnter(Collision coll) {
+//        GameObject otherGO = coll.gameObject;
+//        if (otherGO.GetComponent<ProjectileHero>() != null) {
+//            Destroy(otherGO); // Destroy the Projectile
+//            Destroy(gameObject); // Destroy this Enemy GameObject
+//        }
+//        else {
+//            Debug.Log("Enemy hit by non-ProjectileHero: " + otherGO.name);
+//        }
+//    }
+
     void OnCollisionEnter(Collision coll) {
         GameObject otherGO = coll.gameObject;
-        if (otherGO.GetComponent<ProjectileHero>() != null) {
-            Destroy(otherGO); // Destroy the Projectile
-            Destroy(gameObject); // Destroy this Enemy GameObject
+        // Check for collisions with ProjectileHero
+        ProjectileHero p = otherGO.GetComponent<ProjectileHero>();
+        if (p != null) {
+            // Only damage this Enemy if it's on screen
+            if (bndCheck.isOnScreen) {
+                // Get the damage amount from the Main WEAP_DICT.
+                health -= Main.GET_WEAPON_DEFINITION(p.type).damageOnHit;
+                if (health <= 0) {
+                    // Tell Main that this ship was destroyed
+                    if (!calledShipDestroyed) {
+                        calledShipDestroyed = true;
+                        Main.SHIP_DESTROYED(this);
+                    }
+                    // Destroy this Enemy
+                    Destroy(this.gameObject);
+                }
+            }
+            // Destroy the ProjectileHero regardless
+            Destroy(otherGO);
         }
         else {
-            Debug.Log("Enemy hit by non-ProjectileHero: " + otherGO.name);
+            print("Enemy hit by non-ProjectileHero: " + otherGO.name);
         }
     }
  
